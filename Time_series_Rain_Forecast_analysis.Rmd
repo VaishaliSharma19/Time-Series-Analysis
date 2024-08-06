@@ -1,0 +1,191 @@
+---
+title: "Lec5_timeseries"
+output: html_document
+date: "2024-02-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+install.packages('TSA')
+```
+ 
+```{r}
+library(TSA)
+```
+```{r}
+data("larain")
+head(larain)
+View(larain)
+```
+
+```{r}
+larain
+```
+```{r}
+plot(larain, ylab = 'inches', xlab = 'yr', type = 'o')
+```
+
+```{r}
+df_larain = data.frame(current = larain, previous_year = zlag(larain))
+View(df_larain)
+```
+```{r}
+library(ggplot2)
+```
+```{r}
+ggplot(data = df_larain, aes(x=current, y= previous_year))+
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+
+```{r}
+data("tempdub")
+tempdub
+```
+```{r}
+plot(tempdub, ylab = 'avg temp', xlab = 'yr')
+```
+
+```{r}
+#scatter plot current vs prev yr
+temp = data.frame(current = tempdub, last_year = zlag(tempdub))
+
+ggplot(data = temp, aes(x=current, y= last_year))+
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+```{r}
+acf(tempdub)
+```
+```{r}
+pacf(tempdub)
+```
+
+```{r}
+install.packages('forecast')
+install.packages('tseries')
+```
+
+```{r}
+#arima
+
+library(tidyverse)
+library(forecast)
+library(tseries)
+
+adf.test(tempdub) # p value should be less than 5% to be stationary. 
+```
+#ARIMA Model
+```{r}
+data = read.csv("~/Desktop/SMC/Advanced Analytics/LEC_TimeSeries/InflationRate.csv")
+```
+```{r}
+View(data)
+class(data) # not a time series
+class(tempdub)
+```
+
+```{r}
+data_ts = ts(data[, colnames(data)[2]], start = c(1958,1), frequency = 12)
+class(data_ts)
+```
+
+```{r}
+autoplot(data_ts) + ggtitle('inf' ) + ylab('infl')
+```
+```{r}
+#create arima model
+model_ar = auto.arima(data_ts, seasonal = TRUE)
+summary(model_ar)
+
+
+auto.arima(data_ts, seasonal = TRUE) # to check other valure od AIC
+
+
+ts_fcst = forecast(model_ar, trace = TRUE)
+plot(ts_fcst)
+```
+```{r}
+# find time series
+decompose(data_ts)$type
+```
+## TS model comparisons
+
+```{r}
+data("oilfilters")
+oilfilters
+```
+
+```{r}
+autoplot(oilfilters) + ggtitle('oil f replaced') + ylab('oil fil')
+```
+```{r} 
+#Decompsition
+## outcome: doesnt make sense here. p value is high when checked in the model
+of_new = decompose(oilfilters)
+
+# seasonal index
+of_new$figure
+
+#remove sesonlaity
+```
+# since auto plot = stationary  data we go for ARIMA model
+```{r}
+model_oil = auto.arima(oilfilters, seasonal = TRUE)
+summary(model_oil)
+```
+```{r}
+#forecast
+oil_fcst = forecast(model_oil, h = 12) # h= 12 = number of intervals we are forecasting
+
+plot(oil_fcst)
+# 1 year =. period has 4 quarters (intervals)
+# zlag is on period not on intervals
+```
+```{r}
+#####
+library(readxl)
+sales = read_excel("~/Desktop/SMC/Advanced Analytics/LEC_TimeSeries/TextSales.xlsx")
+```
+
+```{r}
+sales_ts = ts(sales$Sales, start = c(1,1), frequency = 4)
+sales_ts
+```
+```{r}
+class(sales_ts)
+```
+
+```{r}
+model_sales = auto.arima(sales_ts)
+summary(model_sales)
+```
+```{r}
+auto.arima(sales_ts, trace = TRUE)
+```
+```{r}
+pred_sales = forecast(model_sales, h= 4)
+plot(pred_sales)
+```
+
+```{r}
+#Try decomposition
+d_ts = decompose(sales_ts)
+lin_sales = sales_ts/d_ts$figure
+
+t = 1:12
+
+model_lm = lm(lin_sales~t)
+
+lm_frcst = forecast(model_lm, newdata = data.frame(t=13:16))
+##apply seasonality
+decm_forecast = lm_frcst$mean*d_ts$figure
+decm_forecast
+```
+
+```{r}
+cbind
+```
+
